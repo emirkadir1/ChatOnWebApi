@@ -3,15 +3,11 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.VisualBasic;
 using System.Runtime.Intrinsics.Arm;
 using System.Security.Cryptography.X509Certificates;
-using Microsoft.EntityFrameworkCore;
 using ChatOnWebApi.Interfaces;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using Azure;
 using System.Text;
 using ChatOnWebApi.Tokens;
 using ChatOnWebApi.Services;
-using Newtonsoft.Json.Linq;
+using Microsoft.EntityFrameworkCore;
 
 namespace ChatOnWebApi.Hubs
 {

@@ -46,6 +46,7 @@ namespace ChatOnWebApi.Hubs
         }
         public async Task AcceptFriend(string sender, string reciever)
         {
+            var user = _context.Users.FirstOrDefault(u => u.UserName == sender.Trim());
             await Clients.Caller.SendAsync("Add-Friend");
         }
         public async Task RemoveRequest(string sender, string reciever)

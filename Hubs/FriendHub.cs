@@ -50,6 +50,7 @@ namespace ChatOnWebApi.Hubs
         }
         public async Task RemoveRequest(string sender, string reciever)
         {
+            var b = "onur";
             await Clients.Caller.SendAsync("Add-Friend");
         }
     }

@@ -81,8 +81,6 @@ app.UseAuthentication();
 
 app.MapHub<ChatHub>("/ChatHub");
 
-app.MapHub<ChatHub>("/FriendHub");
-
 app.UseAuthorization();
 
 app.MapControllers();

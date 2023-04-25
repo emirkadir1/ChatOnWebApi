@@ -38,7 +38,6 @@ namespace ChatOnWebApi.Controllers
 
                 return await _context.Users.ToListAsync();
             }
-            [Authorize]
             [HttpGet("{userName}")]
             public async Task<ActionResult<User>> GetUser(string userName)
             {

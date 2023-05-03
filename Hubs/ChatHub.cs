@@ -186,5 +186,13 @@ namespace ChatOnWebApi.Hubs
             }
 
         }
+        public async Task GetUsersFriendList(string userName)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u =>u.UserName == userName.Trim());
+            var friendlist = await _context.Friends.Include(rt=>rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == user);
+            if (friendlist != null)
+                await Clients.Caller.SendAsync("FriendList", friendlist.UsersFriendList.ToList());
+        }
+
     }
 }

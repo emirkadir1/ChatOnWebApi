@@ -165,21 +165,20 @@ namespace ChatOnWebApi.Controllers
         [HttpPost("setprofile")]
         public async Task<IActionResult> SetProfile(UserSetProfileRequest request)
         {
-            var user = await _context.Users
-                    .FirstOrDefaultAsync(u => u.UserName == request.UserName.Trim());
+            
+            var user = await _context.Users.SingleOrDefaultAsync(x => x.UserName == request.UserName);
             DateTime.TryParse(request.BirthDay, out var birthDay);
-            if (user is not null)
+            if (user.UserName == request.UserName && user is not null)
             {
                 user.FirstName = request.FirstName;
                 user.LastName = request.LastName;
-                user.ImageUrl = request.ImageUrl;
                 user.BirthDay = birthDay;
                 user.PhoneNumber = request.PhoneNumber;
-            }
-            _context.SaveChanges();
-            return Ok("Başarıyla Güncelleme Gerçekleşti.");
+                _context.SaveChanges();
+                return Ok("Başarıyla Güncelleme Gerçekleşti.");
+            } 
+            return BadRequest();
         }
-
         private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
             {
                 using (var hmac = new HMACSHA512())
@@ -229,6 +228,7 @@ namespace ChatOnWebApi.Controllers
             {
                 HttpOnly = true,
                 Expires = newRefreshToken.Expires,
+                SameSite = SameSiteMode.None
             };
             Response.Cookies.Append("refreshToken", newRefreshToken.Token, cookieOptions);
 

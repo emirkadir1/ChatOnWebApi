@@ -47,16 +47,16 @@ namespace ChatOnWebApi.Controllers
                 {
                     return NotFound();
                 }
-                UserResponse response = new()
-                {
-                    UserName = user.UserName,
-                    Email = user.Email,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    ImageUrl = user.ImageUrl,
-                    PhoneNumber = user.PhoneNumber,
-                    BirthDay = user.BirthDay
-                };
+            UserResponse response = new()
+            {
+                UserName = user.UserName,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                ImageUrl = user.ImageUrl,
+                PhoneNumber = user.PhoneNumber,
+                BirthDay = user.BirthDay.ToString("d")
+        };
             return Ok(response);
             }
 
@@ -173,12 +173,11 @@ namespace ChatOnWebApi.Controllers
         {
             
             var user = await _context.Users.SingleOrDefaultAsync(x => x.UserName == request.UserName);
-            DateTime.TryParse(request.BirthDay, out var birthDay);
             if (user.UserName == request.UserName && user is not null)
             {
                 user.FirstName = request.FirstName;
                 user.LastName = request.LastName;
-                user.BirthDay = birthDay;
+                user.BirthDay = request.BirthDate;
                 user.PhoneNumber = request.PhoneNumber;
                 _context.SaveChanges();
                 return Ok("Başarıyla Güncelleme Gerçekleşti.");

@@ -8,6 +8,6 @@
         public string? FirstName { get; set; } = string.Empty;
         public string? LastName { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; } = string.Empty;
-        public DateTime BirthDay { get; set; } 
+        public string? BirthDay { get; set; } = string.Empty;
     }
 }

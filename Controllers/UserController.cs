@@ -153,9 +153,15 @@ namespace ChatOnWebApi.Controllers
         public async Task<IActionResult> DeleteRefreshToken()
         {
             var refreshToken = Request.Cookies["refreshToken"];
-            var setRefreshToken = await _context.RefreshTokens.SingleOrDefaultAsync(u => u.Token == refreshToken);
+            var setRefreshToken = await _context.RefreshTokens
+            .Include(rt => rt.User)
+            .SingleOrDefaultAsync(u => u.Token == refreshToken);
+            
             if (setRefreshToken != null)
             {
+                var user = await _context.Users.SingleOrDefaultAsync(x => x.Id == setRefreshToken.User.Id);
+                if(user != null ) 
+                    user.Online = false;
                 _context.RefreshTokens.Remove(setRefreshToken);
                 Response.Cookies.Delete("refreshToken");
                 await _context.SaveChangesAsync();

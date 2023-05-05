@@ -32,7 +32,6 @@ namespace ChatOnWebApi.Hubs
             if(friendList != null)
                 await Clients.Caller.SendAsync("Users", friendList.UsersFriendList.ToList());
         }
-
        public async Task SendMessage(string userName, string reciver, string text)
         {
             var _sender = await _context.Users.FirstOrDefaultAsync(u => u.UserName == userName.Trim());
@@ -56,17 +55,6 @@ namespace ChatOnWebApi.Hubs
                 await _context.SaveChangesAsync();
             }
         }
-
-        /*public override async Task OnDisconnectedAsync(Exception? exception)
-        {
-            var user = _context.Users.FirstOrDefault(u => u.ConnectionId == Context.ConnectionId);
-            if (user != null)
-            {
-                user.Online = false;
-            }
-            await Clients.All.SendAsync("users", _context.Users.ToList());
-            await _context.SaveChangesAsync();
-        }*/
         public async Task GetMessages(string myMessages, string hisMessages)
         {
             var _me = _context.Users.FirstOrDefault(u => u.UserName == myMessages.Trim());
@@ -90,6 +78,7 @@ namespace ChatOnWebApi.Hubs
             await Clients.Caller.SendAsync("ShowMessages", messages);
             await _context.SaveChangesAsync();
         }
+        //Add friend
         public async Task GetUserList(string userName)
         {
             var user = _context.Users.FirstOrDefault(u => u.UserName == userName.Trim());
@@ -186,6 +175,7 @@ namespace ChatOnWebApi.Hubs
             }
 
         }
+        //User Profile
         public async Task GetUsersFriendList(string userName)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u =>u.UserName == userName.Trim());

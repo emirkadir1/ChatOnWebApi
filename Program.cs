@@ -7,7 +7,7 @@ using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Filters;
 using System.Text;
 using System.Text.Json.Serialization;
-
+using OpenAI.GPT3.Extensions;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -66,6 +66,9 @@ builder.Services.AddDbContext<UserDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlCon"));
 });
+//Gpt setup
+builder.Services.AddOpenAIService(settings =>
+settings.ApiKey = "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");
 
 
 var app = builder.Build();

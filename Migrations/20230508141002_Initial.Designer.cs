@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ChatOnWebApi.Migrations
 {
     [DbContext(typeof(UserDbContext))]
-    [Migration("20230422115119_FriendList")]
-    partial class FriendList
+    [Migration("20230508141002_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -43,6 +43,29 @@ namespace ChatOnWebApi.Migrations
                     b.ToTable("Friends");
                 });
 
+            modelBuilder.Entity("ChatOnWebApi.Models.FriendRequests", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("RecieverId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SenderId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecieverId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("FriendRequests");
+                });
+
             modelBuilder.Entity("ChatOnWebApi.Models.Message", b =>
                 {
                     b.Property<int>("Id")
@@ -68,6 +91,10 @@ namespace ChatOnWebApi.Migrations
                     b.Property<int>("SenderId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Translate")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ReciverId");
@@ -75,6 +102,51 @@ namespace ChatOnWebApi.Migrations
                     b.HasIndex("SenderId");
 
                     b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("ChatOnWebApi.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("NotificationListId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SenderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NotificationListId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("ChatOnWebApi.Models.NotificationList", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("NotificationList");
                 });
 
             modelBuilder.Entity("ChatOnWebApi.Models.RefreshToken", b =>
@@ -132,6 +204,9 @@ namespace ChatOnWebApi.Migrations
                     b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("LanguageCode")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("LastName")
                         .HasColumnType("nvarchar(max)");
 
@@ -184,6 +259,25 @@ namespace ChatOnWebApi.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ChatOnWebApi.Models.FriendRequests", b =>
+                {
+                    b.HasOne("ChatOnWebApi.Models.User", "Reciever")
+                        .WithMany()
+                        .HasForeignKey("RecieverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ChatOnWebApi.Models.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Reciever");
+
+                    b.Navigation("Sender");
+                });
+
             modelBuilder.Entity("ChatOnWebApi.Models.Message", b =>
                 {
                     b.HasOne("ChatOnWebApi.Models.User", "Reciver")
@@ -201,6 +295,32 @@ namespace ChatOnWebApi.Migrations
                     b.Navigation("Reciver");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("ChatOnWebApi.Models.Notification", b =>
+                {
+                    b.HasOne("ChatOnWebApi.Models.NotificationList", null)
+                        .WithMany("UsersNotificationList")
+                        .HasForeignKey("NotificationListId");
+
+                    b.HasOne("ChatOnWebApi.Models.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("ChatOnWebApi.Models.NotificationList", b =>
+                {
+                    b.HasOne("ChatOnWebApi.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ChatOnWebApi.Models.RefreshToken", b =>
@@ -224,6 +344,11 @@ namespace ChatOnWebApi.Migrations
             modelBuilder.Entity("ChatOnWebApi.Models.FriendList", b =>
                 {
                     b.Navigation("UsersFriendList");
+                });
+
+            modelBuilder.Entity("ChatOnWebApi.Models.NotificationList", b =>
+                {
+                    b.Navigation("UsersNotificationList");
                 });
 #pragma warning restore 612, 618
         }

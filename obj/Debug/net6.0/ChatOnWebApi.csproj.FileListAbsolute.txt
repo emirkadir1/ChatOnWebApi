@@ -118,3 +118,4 @@ C:\Users\Emir\Desktop\ChatOnWebApi\bin\Debug\net6.0\Microsoft.AspNetCore.Authent
 C:\Users\Emir\Desktop\ChatOnWebApi\bin\Debug\net6.0\Scrutor.dll
 C:\Users\Emir\Desktop\ChatOnWebApi\bin\Debug\net6.0\Swashbuckle.AspNetCore.Filters.dll
 C:\Users\Emir\Desktop\ChatOnWebApi\bin\Debug\net6.0\Swashbuckle.AspNetCore.Filters.Abstractions.dll
+C:\Users\Emir\Desktop\ChatOnWebApi\bin\Debug\net6.0\OpenAI.GPT3.dll

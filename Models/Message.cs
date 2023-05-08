@@ -10,6 +10,7 @@ namespace ChatOnWebApi.Models
         public User Reciver { get; set; } = new User();
         public string Body { get; set; } = string.Empty;
         public string CreatedTime { get; set; } = DateTime.Now.ToString();
+        public string Translated  { get; set; }=string.Empty;
         public byte IsRecived { get; set; } = 0;
 
     }

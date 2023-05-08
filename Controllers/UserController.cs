@@ -1,22 +1,12 @@
-﻿using ChatOnWebApi.Interfaces;
-using ChatOnWebApi.Models;
+﻿using ChatOnWebApi.Models;
 using ChatOnWebApi.Services;
-using ChatOnWebApi.Tokens;
-using Hangfire;
-using MailKit.Security;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using MimeKit;
-using MimeKit.Text;
-using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
-using System.Net.Mail;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace ChatOnWebApi.Controllers
 {
@@ -41,7 +31,8 @@ namespace ChatOnWebApi.Controllers
             [HttpGet("{userName}")]
             public async Task<ActionResult<User>> GetUser(string userName)
             {
-                var user = await _context.Users
+            var refreshToken = Request.Cookies["refreshToken"];
+            var user = await _context.Users
                     .FirstOrDefaultAsync(u => u.UserName == userName);          
                 if (user == null)
                 {
@@ -96,7 +87,12 @@ namespace ChatOnWebApi.Controllers
                 {
                     User = user,
                 };
+                NotificationList notificationList = new()
+                {
+                    User = user,
+                };
                 _context.Friends.Add(friendList);
+                _context.NotificationList.Add(notificationList);
                 await _context.SaveChangesAsync();
                 return Ok(CreateRandomToken(user));
                 }
@@ -168,6 +164,26 @@ namespace ChatOnWebApi.Controllers
             }
             return Ok();
         }
+
+        [HttpPost("firsttime")]
+        public async Task<IActionResult> FirsTimeSetProfile(UserFirstTimeProfile request)
+        {
+
+            var user = await _context.Users.SingleOrDefaultAsync(x => x.UserName == request.UserName);
+            if (user.UserName == request.UserName && user is not null)
+            {
+                user.FirstName = request.FirstName;
+                user.LastName = request.LastName;
+                user.BirthDay = request.BirthDate;
+                user.PhoneNumber = request.PhoneNumber;
+                user.ImageUrl= request.ImageUrl;
+                user.LanguageCode = request.LanguageCode;
+                _context.SaveChanges();
+                return Ok("Başarıyla Güncelleme Gerçekleşti.");
+            }
+            return BadRequest();
+        }
+
         [HttpPost("setprofile")]
         public async Task<IActionResult> SetProfile(UserSetProfileRequest request)
         {
@@ -179,7 +195,8 @@ namespace ChatOnWebApi.Controllers
                 user.LastName = request.LastName;
                 user.BirthDay = request.BirthDate;
                 user.PhoneNumber = request.PhoneNumber;
-                _context.SaveChanges();
+                user.Email = request.Email;
+                await _context.SaveChangesAsync();
                 return Ok("Başarıyla Güncelleme Gerçekleşti.");
             } 
             return BadRequest();

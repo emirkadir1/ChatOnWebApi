@@ -88,6 +88,10 @@ namespace ChatOnWebApi.Migrations
                     b.Property<int>("SenderId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Translate")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ReciverId");
@@ -95,6 +99,51 @@ namespace ChatOnWebApi.Migrations
                     b.HasIndex("SenderId");
 
                     b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("ChatOnWebApi.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("NotificationListId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SenderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NotificationListId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("ChatOnWebApi.Models.NotificationList", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("NotificationList");
                 });
 
             modelBuilder.Entity("ChatOnWebApi.Models.RefreshToken", b =>
@@ -150,6 +199,9 @@ namespace ChatOnWebApi.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ImageUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LanguageCode")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LastName")
@@ -242,6 +294,32 @@ namespace ChatOnWebApi.Migrations
                     b.Navigation("Sender");
                 });
 
+            modelBuilder.Entity("ChatOnWebApi.Models.Notification", b =>
+                {
+                    b.HasOne("ChatOnWebApi.Models.NotificationList", null)
+                        .WithMany("UsersNotificationList")
+                        .HasForeignKey("NotificationListId");
+
+                    b.HasOne("ChatOnWebApi.Models.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("ChatOnWebApi.Models.NotificationList", b =>
+                {
+                    b.HasOne("ChatOnWebApi.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ChatOnWebApi.Models.RefreshToken", b =>
                 {
                     b.HasOne("ChatOnWebApi.Models.User", "User")
@@ -263,6 +341,11 @@ namespace ChatOnWebApi.Migrations
             modelBuilder.Entity("ChatOnWebApi.Models.FriendList", b =>
                 {
                     b.Navigation("UsersFriendList");
+                });
+
+            modelBuilder.Entity("ChatOnWebApi.Models.NotificationList", b =>
+                {
+                    b.Navigation("UsersNotificationList");
                 });
 #pragma warning restore 612, 618
         }

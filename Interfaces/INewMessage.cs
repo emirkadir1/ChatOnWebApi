@@ -15,6 +15,6 @@ namespace ChatOnWebApi.Interfaces
         /// 0 Reciver is offline, 1 Reciver is online but not looking message, 2 Reciver read the message. Default 0
         /// </summary>
         byte IsRecived { get; set; }
-        string Translated { get; set; }
+        string Translate { get; set; }
     }
 }

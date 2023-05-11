@@ -129,7 +129,7 @@ namespace ChatOnWebApi.Hubs
             if (friendList != null)
                 await Clients.Caller.SendAsync("Users", friendList.UsersFriendList.ToList());
         }
-       public async Task SendMessage(string userName, string reciver, string text)
+       public async Task SendMessage(string userName, string reciver, string text,bool isTranslate)
         {
             var _sender = await _context.Users.FirstOrDefaultAsync(u => u.UserName == userName.Trim());
 
@@ -145,25 +145,28 @@ namespace ChatOnWebApi.Hubs
 
                 };
                 //Send message to chat gpt
-                var question = $"${message.Body}. Which language is this sentence? Return only language code";
-                CompletionCreateResponse result = await _openAIService.Completions.CreateCompletion(new CompletionCreateRequest()
+                if (isTranslate)
                 {
-                    Prompt = question,
-                    MaxTokens = 10
-                }, OpenAI.GPT3.ObjectModels.Models.TextDavinciV3);
-                string str = result.Choices[0].Text;
-                str = str.Replace("\n", ""); // "\nen"
-                str = str.Replace("\n", ""); // "en"
-                if (_reciver.LanguageCode.ToLower() != str)
-                {
-                    var translate = $"${message.Body}. Translate this sentence to {_reciver.LanguageCode}. Return only sentence";
-                    CompletionCreateResponse result2 = await _openAIService.Completions.CreateCompletion(new CompletionCreateRequest()
+                    var question = $"${message.Body}. Which language is this sentence? Return only language code";
+                    CompletionCreateResponse result = await _openAIService.Completions.CreateCompletion(new CompletionCreateRequest()
                     {
-                        Prompt = translate,
-                        MaxTokens = 100
+                        Prompt = question,
+                        MaxTokens = 10
                     }, OpenAI.GPT3.ObjectModels.Models.TextDavinciV3);
-                    message.Translated= result2.Choices[0].Text ;
-                }
+                    string str = result.Choices[0].Text;
+                    str = str.Replace("\n", ""); // "\nen"
+                    str = str.Replace("\n", ""); // "en"
+                    if (_reciver.LanguageCode.ToLower() != str.ToLower())
+                    {
+                        var translate = $"${message.Body}. Translate this sentence to {_reciver.LanguageCode}. Return only sentence";
+                        CompletionCreateResponse result2 = await _openAIService.Completions.CreateCompletion(new CompletionCreateRequest()
+                        {
+                            Prompt = translate,
+                            MaxTokens = 100
+                        }, OpenAI.GPT3.ObjectModels.Models.TextDavinciV3);
+                        message.Translate = result2.Choices[0].Text;
+                    }
+                }                
                 if (_reciver.Online && _reciver.LookingAt==_sender.UserName)
                 {
                     message.IsRecived = 2;
@@ -199,10 +202,10 @@ namespace ChatOnWebApi.Hubs
                 }
                 _context.Messages.Add((Message)message);
                 await _context.SaveChangesAsync();
-                await Clients.Caller.SendAsync("ReceiveMessageMine", message.Sender, message.Body, message.CreatedTime, message.IsRecived,message.Translated );
+                await Clients.Caller.SendAsync("ReceiveMessageMine", message.Sender, message.Body, message.CreatedTime, message.IsRecived,message.Translate );
                 if (_reciver.Online && _reciver.ConnectionId is not null)
                 {
-                    await Clients.Client(_reciver.ConnectionId).SendAsync("ReceiveMessageFromOthers", message.Sender, message.Body, message.CreatedTime,message.Translated);
+                    await Clients.Client(_reciver.ConnectionId).SendAsync("ReceiveMessageFromOthers", message.Sender, message.Body, message.CreatedTime,message.Translate);
                 }
                 
             }

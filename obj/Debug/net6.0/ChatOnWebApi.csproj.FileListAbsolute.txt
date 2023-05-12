@@ -1,5 +1,4 @@
 C:\Users\Emir\Desktop\ChatOnWebApi\bin\Debug\net6.0\appsettings.Development.json
-C:\Users\Emir\Desktop\ChatOnWebApi\bin\Debug\net6.0\appsettings.json
 C:\Users\Emir\Desktop\ChatOnWebApi\bin\Debug\net6.0\ChatOnWebApi.exe
 C:\Users\Emir\Desktop\ChatOnWebApi\bin\Debug\net6.0\ChatOnWebApi.deps.json
 C:\Users\Emir\Desktop\ChatOnWebApi\bin\Debug\net6.0\ChatOnWebApi.runtimeconfig.json

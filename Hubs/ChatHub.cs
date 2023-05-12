@@ -324,8 +324,8 @@ namespace ChatOnWebApi.Hubs
                 //Delete Request because we dont need anymore
                 _context.FriendRequests.Remove(friendRequest);
                 //Find Both users friend list and add their friendlist eachother
-                var senderFriendList = await _context.Friends.FirstOrDefaultAsync(u => u.User == _sender);
-                var recieverFriendList = await _context.Friends.FirstOrDefaultAsync(u => u.User == _reciever);
+                var senderFriendList = await _context.Friends.Include(rt=>rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == _sender);
+                var recieverFriendList = await _context.Friends.Include(rt => rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == _reciever);
                 if (senderFriendList != null && recieverFriendList != null)
                 {
                     senderFriendList.UsersFriendList.Add(_reciever);
@@ -346,8 +346,8 @@ namespace ChatOnWebApi.Hubs
             //Find Both users friend list and remove their friendlist eachother
             if (_sender != null && _reciever != null)
             {
-                var senderFriendList = await _context.Friends.FirstOrDefaultAsync(u => u.User == _sender);
-                var recieverFriendList = await _context.Friends.FirstOrDefaultAsync(u => u.User == _reciever);
+                var senderFriendList = await _context.Friends.Include(rt => rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == _sender);
+                var recieverFriendList = await _context.Friends.Include(rt => rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == _reciever);
                 if (senderFriendList != null && recieverFriendList != null)
                 {
                     senderFriendList.UsersFriendList.Remove(_reciever);

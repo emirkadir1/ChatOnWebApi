@@ -48,23 +48,81 @@ namespace ChatOnWebApi.Hubs
             var user = await _context.Users.FirstOrDefaultAsync(u=>u.UserName== userName.Trim());
             if (user != null)
             {
+                user.Online = true;
+                user.ConnectionId = Context.ConnectionId;
                 var notificationList = await _context.NotificationList.Include(rt => rt.UsersNotificationList).FirstOrDefaultAsync(u => u.User == user);
                 await Clients.Caller.SendAsync("Notification", notificationList.UsersNotificationList.ToList());
+                var friendList = await _context.Friends.Include(rt => rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == user);
+                if (friendList != null)
+                {
+                    //When user gets online this function makes all messages status 1.
+                    foreach (var item in friendList.UsersFriendList)
+                    {
+                        List<MessageResponse> messages = new List<MessageResponse>();
+                            foreach (var message in _context.Messages.ToList<Message>())
+                            {
+                                if (item.UserName == message.Sender.UserName && user.UserName == message.Reciver.UserName)
+                                {
+                                if (message.IsRecived==0)
+                                {
+                                    message.IsRecived = 1;
+                                }   
+                                    MessageResponse response = new MessageResponse();
+                                    response.Sender = message.Sender.UserName;
+                                    response.Body = message.Body;
+                                    response.Reciver = message.Reciver.UserName;
+                                    response.Translate = message.Translate;                                    
+                                    response.CreatedTime = message.CreatedTime.ToString("t");
+                                    response.ImageUrl = user.ImageUrl;
+                                    response.IsRecived = message.IsRecived;
+                                    messages.Add(response);
+                                }
+                                if (user.UserName == message.Sender.UserName && item.UserName == message.Reciver.UserName)
+                                {                                    
+                                    MessageResponse response = new MessageResponse();
+                                    response.Sender = message.Sender.UserName;
+                                    response.Body = message.Body;
+                                    response.Reciver = message.Reciver.UserName;
+                                    response.Translate = message.Translate;
+                                    response.IsRecived = message.IsRecived;
+                                    response.CreatedTime = message.CreatedTime.ToString("t");
+                                    response.ImageUrl = item.ImageUrl;
+                                    messages.Add(response);
+                                }
+                            }
+                            if (item.ConnectionId != null && item.LookingAt == user.UserName)
+                        {
+                            await Clients.Clients(item.ConnectionId).SendAsync("IAmOnline", user.UserName);
+                            await Clients.Client(item.ConnectionId).SendAsync("ShowMessages", messages);
+                        }
+
+                        else if (item.ConnectionId != null)
+                        {
+                            await Clients.Clients(item.ConnectionId).SendAsync("IAmOnline", user.UserName);
+                        }
+
+                    }
+                    await _context.SaveChangesAsync();
+                }
             }
                
         }
         //When user clicks message room this method removes all message notifications
-        public async Task DeleteMessageNotification(string userName)
+        public async Task DeleteMessageNotification(string userName,string targetUser)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == userName);
             var notificationList = await _context.NotificationList.Include(rt=>rt.UsersNotificationList).FirstOrDefaultAsync(u => u.User == user);
-            foreach (var item in notificationList.UsersNotificationList)
+            for (int i = notificationList.UsersNotificationList.Count - 1; i >= 0; i--)
             {
-                if (item.type == "message") 
-                    notificationList.UsersNotificationList.Remove(item);
+                if (notificationList.UsersNotificationList[i].type == "message"
+                    && notificationList.UsersNotificationList[i].Sender == targetUser.Trim())
+                {
+                    notificationList.UsersNotificationList.RemoveAt(i);
+                }
             }
-            
-            await Clients.Caller.SendAsync("GetNotification",notificationList.UsersNotificationList.ToList());
+            await _context.SaveChangesAsync();
+            await Clients.Caller.SendAsync("Notification", notificationList.UsersNotificationList.ToList());
+            await Clients.Caller.SendAsync("DeleteNotification", targetUser);
         }
         //When user clicks add friend room this method removes all message notifications
         public async Task DeleteFriendNotification(string userName)
@@ -86,48 +144,14 @@ namespace ChatOnWebApi.Hubs
             {
                 user.Online = true;
                 user.ConnectionId = Context.ConnectionId;
+                user.LookingAt="";
 
             }
             await _context.SaveChangesAsync();
             var friendList = await _context.Friends.Include(rt=>rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == user);
+            var notificationList = await _context.NotificationList.Include(rt => rt.UsersNotificationList).FirstOrDefaultAsync(u => u.User == user);
             if (friendList != null)
-            {
-                //When user gets online this function makes all messages status 1.
-                foreach (var item in friendList.UsersFriendList)
-                {
-                    List<Message> messages = new List<Message>();
-                    {
-                        foreach (var message in _context.Messages.ToList<Message>())
-                        {
-
-                            if (message.Sender.UserName == item.UserName && message.Reciver.UserName == user.UserName)
-                            {
-                                messages.Add(message);
-                                if (message.IsRecived == 0)
-                                    message.IsRecived = 1;
-                            }
-                            if (message.Sender.UserName == user.UserName && message.Reciver.UserName == item.UserName)
-                            {
-                                messages.Add(message);
-                            }
-                        }
-                    }
-                    
-                    if (item.ConnectionId != null && item.LookingAt == user.UserName)
-                    {
-                        await Clients.Clients(item.ConnectionId).SendAsync("IAmOnline", user.UserName);
-                        await Clients.Client(item.ConnectionId).SendAsync("ShowMessages", messages);
-                    }
-
-                    else if (item.ConnectionId != null)
-                    {
-                        await Clients.Clients(item.ConnectionId).SendAsync("IAmOnline", user.UserName);
-                    }
-
-                }
-            }
-            if (friendList != null)
-                await Clients.Caller.SendAsync("Users", friendList.UsersFriendList.ToList());
+                await Clients.Caller.SendAsync("Users", friendList.UsersFriendList.ToList(),notificationList.UsersNotificationList.ToList());
         }
        public async Task SendMessage(string userName, string reciver, string text,bool isTranslate)
         {
@@ -141,7 +165,7 @@ namespace ChatOnWebApi.Hubs
                     Sender = _sender,
                     Reciver = _reciver,
                     Body = text,
-                    CreatedTime = DateTime.Now.ToString("t")
+                    CreatedTime = DateTime.Now
 
                 };
                 //Send message to chat gpt
@@ -176,7 +200,7 @@ namespace ChatOnWebApi.Hubs
                     message.IsRecived = 1;
                     var notification = new Notification()
                     {
-                        Sender = _sender,
+                        Sender = _sender.UserName,
                         type = "message"
                     };
                     var notificationList = await _context.NotificationList.Include(rt=>rt.UsersNotificationList).FirstOrDefaultAsync(u => u.User == _reciver);
@@ -185,6 +209,7 @@ namespace ChatOnWebApi.Hubs
                         notificationList.UsersNotificationList.Add(notification);
                         await _context.SaveChangesAsync();
                         await Clients.Client(_reciver.ConnectionId).SendAsync("Notification", notificationList.UsersNotificationList.ToList());
+                        await Clients.Client(_reciver.ConnectionId).SendAsync("GetNotification", _sender.UserName);
                     }
                         
                 }
@@ -193,7 +218,7 @@ namespace ChatOnWebApi.Hubs
                     message.IsRecived =0;
                     var notification = new Notification()
                     {
-                        Sender = _sender,
+                        Sender = _sender.UserName,
                         type = "message"
                     };
                     var notificationList = await _context.NotificationList.FirstOrDefaultAsync(u => u.User == _reciver);
@@ -202,10 +227,10 @@ namespace ChatOnWebApi.Hubs
                 }
                 _context.Messages.Add((Message)message);
                 await _context.SaveChangesAsync();
-                await Clients.Caller.SendAsync("ReceiveMessageMine", message.Sender, message.Body, message.CreatedTime, message.IsRecived,message.Translate );
+                await Clients.Caller.SendAsync("ReceiveMessageMine", message.Sender, message.Body, message.CreatedTime.ToString("t"), message.IsRecived,message.Translate );
                 if (_reciver.Online && _reciver.ConnectionId is not null)
                 {
-                    await Clients.Client(_reciver.ConnectionId).SendAsync("ReceiveMessageFromOthers", message.Sender, message.Body, message.CreatedTime,message.Translate);
+                    await Clients.Client(_reciver.ConnectionId).SendAsync("ReceiveMessageFromOthers", message.Sender, message.Body, message.CreatedTime.ToString("t"),message.Translate);
                 }
                 
             }
@@ -215,7 +240,7 @@ namespace ChatOnWebApi.Hubs
         {
             var _me = _context.Users.FirstOrDefault(u => u.UserName == myMessages.Trim());
             var _him = _context.Users.FirstOrDefault(t => t.UserName == hisMessages.Trim());
-            List<Message> messages = new List<Message>();
+            List<MessageResponse> messages = new List<MessageResponse>();
             if (_me is not null && _him is not null)
             {
                 _me.LookingAt = _him.UserName;
@@ -223,12 +248,28 @@ namespace ChatOnWebApi.Hubs
                 {
                     if (item.Sender.UserName == _me.UserName && item.Reciver.UserName == _him.UserName)
                     {
-                        messages.Add(item);
+                        MessageResponse response = new MessageResponse();
+                        response.Sender = item.Sender.UserName;
+                        response.Body=item.Body;
+                        response.Reciver = item.Reciver.UserName;
+                        response.Translate = item.Translate;
+                        response.IsRecived= item.IsRecived;
+                        response.CreatedTime = item.CreatedTime.ToString("t");
+                        response.ImageUrl = _me.ImageUrl;
+                        messages.Add(response);
                     }
                     if (item.Sender.UserName == _him.UserName && item.Reciver.UserName == _me.UserName)
-                    {
-                        messages.Add(item);
+                    {                        
                         item.IsRecived = 2;
+                        MessageResponse response = new MessageResponse();
+                        response.Sender = item.Sender.UserName;
+                        response.Body = item.Body;
+                        response.Reciver = item.Reciver.UserName;
+                        response.Translate = item.Translate;
+                        response.IsRecived = item.IsRecived;
+                        response.CreatedTime = item.CreatedTime.ToString("t");
+                        response.ImageUrl = _him.ImageUrl;
+                        messages.Add(response);
                     }
                 }
                 await _context.SaveChangesAsync();

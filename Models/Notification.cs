@@ -3,7 +3,7 @@
     public class Notification
     {
         public int Id { get; set; }
-        public User Sender { get; set; } = new User();
+        public string Sender { get; set; } = string.Empty;
 
         public string type { get; set; } = string.Empty;
     }

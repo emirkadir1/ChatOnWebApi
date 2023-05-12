@@ -10,7 +10,7 @@ namespace ChatOnWebApi.Interfaces
         /// <summary>
         /// When new message item created it gets DateTime.Now
         /// </summary>
-        string CreatedTime { get; set; }
+        DateTime CreatedTime { get; set; }
         /// <summary>
         /// 0 Reciver is offline, 1 Reciver is online but not looking message, 2 Reciver read the message. Default 0
         /// </summary>

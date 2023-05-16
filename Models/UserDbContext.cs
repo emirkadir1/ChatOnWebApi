@@ -13,7 +13,6 @@ namespace ChatOnWebApi.Models
         public DbSet<Message> Messages => Set<Message>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
         public DbSet<FriendList> Friends => Set<FriendList>();
-        public DbSet<FriendRequests> FriendRequests => Set<FriendRequests>();
         public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<NotificationList> NotificationList => Set<NotificationList>();
     }

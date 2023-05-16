@@ -83,15 +83,10 @@ namespace ChatOnWebApi.Controllers
                 user.RefreshToken = token.Token;
                 token.User = user;
                 _context.RefreshTokens.Add(token);
-                FriendList friendList = new ()
-                {
-                    User = user,
-                };
                 NotificationList notificationList = new()
                 {
                     User = user,
                 };
-                _context.Friends.Add(friendList);
                 _context.NotificationList.Add(notificationList);
                 await _context.SaveChangesAsync();
                 return Ok(CreateRandomToken(user));

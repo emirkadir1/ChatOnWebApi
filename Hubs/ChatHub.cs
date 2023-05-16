@@ -15,7 +15,7 @@ namespace ChatOnWebApi.Hubs
     {
         private readonly UserDbContext _context;
         private readonly IOpenAIService _openAIService;
-        public ChatHub(UserDbContext context, IOpenAIService openAIService)
+        public ChatHub(UserDbContext context,UserDbContext context2, IOpenAIService openAIService)
         {
             _context = context;
             _openAIService = openAIService;
@@ -30,17 +30,24 @@ namespace ChatOnWebApi.Hubs
                 user.ConnectionId = "";
                 user.Online = false;
                 await _context.SaveChangesAsync();
-            }
-            var friendList = await _context.Friends.Include(rt => rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == user);
-            if (friendList != null)
-            {
-                foreach (var item in friendList.UsersFriendList)
+                foreach (var item in _context.Friends)
                 {
-                    if (item.ConnectionId != null)
-                        await Clients.Clients(item.ConnectionId).SendAsync("IAmOffline", user.UserName);
-
+                    if (user == item.FromUserId && item.isAccepted)
+                    {
+                        var friend = await _context.Users.FirstOrDefaultAsync(u => u == item.ToUserId);
+                        if (friend != null) 
+                            await Clients.Clients(friend.ConnectionId).SendAsync("IAmOffline", user.UserName);
+                    }
+                    if (user == item.ToUserId && item.isAccepted)
+                    {
+                        var friend = await _context.Users.FirstOrDefaultAsync(u => u == item.FromUserId);
+                        if (friend != null)
+                            await Clients.Clients(friend.ConnectionId).SendAsync("IAmOffline", user.UserName);
+                    }
                 }
+                
             }
+
         }
         //When user joins gets notfications
         public async Task GetNotifications(string userName)
@@ -52,57 +59,17 @@ namespace ChatOnWebApi.Hubs
                 user.ConnectionId = Context.ConnectionId;
                 var notificationList = await _context.NotificationList.Include(rt => rt.UsersNotificationList).FirstOrDefaultAsync(u => u.User == user);
                 await Clients.Caller.SendAsync("Notification", notificationList.UsersNotificationList.ToList());
-                var friendList = await _context.Friends.Include(rt => rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == user);
-                if (friendList != null)
+                foreach (var item in _context.Messages)
                 {
-                    //When user gets online this function makes all messages status 1.
-                    foreach (var item in friendList.UsersFriendList)
-                    {
-                        List<MessageResponse> messages = new List<MessageResponse>();
-                            foreach (var message in _context.Messages.ToList<Message>())
-                            {
-                                if (item.UserName == message.Sender.UserName && user.UserName == message.Reciver.UserName)
-                                {
-                                if (message.IsRecived==0)
-                                {
-                                    message.IsRecived = 1;
-                                }   
-                                    MessageResponse response = new MessageResponse();
-                                    response.Sender = message.Sender.UserName;
-                                    response.Body = message.Body;
-                                    response.Reciver = message.Reciver.UserName;
-                                    response.Translate = message.Translate;                                    
-                                    response.CreatedTime = message.CreatedTime.ToString("t");
-                                    response.ImageUrl = user.ImageUrl;
-                                    response.IsRecived = message.IsRecived;
-                                    messages.Add(response);
-                                }
-                                if (user.UserName == message.Sender.UserName && item.UserName == message.Reciver.UserName)
-                                {                                    
-                                    MessageResponse response = new MessageResponse();
-                                    response.Sender = message.Sender.UserName;
-                                    response.Body = message.Body;
-                                    response.Reciver = message.Reciver.UserName;
-                                    response.Translate = message.Translate;
-                                    response.IsRecived = message.IsRecived;
-                                    response.CreatedTime = message.CreatedTime.ToString("t");
-                                    response.ImageUrl = item.ImageUrl;
-                                    messages.Add(response);
-                                }
-                            }
-                            if (item.ConnectionId != null && item.LookingAt == user.UserName)
-                        {
-                            await Clients.Clients(item.ConnectionId).SendAsync("IAmOnline", user.UserName);
-                            await Clients.Client(item.ConnectionId).SendAsync("ShowMessages", messages);
-                        }
-
-                        else if (item.ConnectionId != null)
-                        {
-                            await Clients.Clients(item.ConnectionId).SendAsync("IAmOnline", user.UserName);
-                        }
-
-                    }
-                    await _context.SaveChangesAsync();
+                    if (item.Reciver == user)
+                        if (item.IsRecived == 0)
+                            item.IsRecived = 1;
+                }
+                await _context.SaveChangesAsync();
+                foreach (var item in _context.Users)
+                {
+                    if (item.LookingAt == user.UserName)
+                        await Clients.Client(item.ConnectionId).SendAsync("TheUserLookingAtGetsOnline");
                 }
             }
                
@@ -147,11 +114,26 @@ namespace ChatOnWebApi.Hubs
                 user.LookingAt="";
 
             }
-            await _context.SaveChangesAsync();
-            var friendList = await _context.Friends.Include(rt=>rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == user);
+            List<User> friends = new List<User>();
+            if (user != null)
+            {
+                foreach (var item in _context.Friends.Include(rt => rt.FromUserId).Include(rt => rt.ToUserId))
+                {
+                    if (user == item.ToUserId && item.isAccepted)
+                    {
+                     friends.Add(item.FromUserId);
+                    }
+                    if (user == item.FromUserId && item.isAccepted)
+                    {
+                     friends.Add(item.ToUserId);
+                    }
+                }
+                if (friends != null)
+                    await Clients.Caller.SendAsync("FriendList", friends.ToList());
+            }
             var notificationList = await _context.NotificationList.Include(rt => rt.UsersNotificationList).FirstOrDefaultAsync(u => u.User == user);
-            if (friendList != null)
-                await Clients.Caller.SendAsync("Users", friendList.UsersFriendList.ToList(),notificationList.UsersNotificationList.ToList());
+            if (friends != null)
+                await Clients.Caller.SendAsync("Users", friends.ToList(),notificationList.UsersNotificationList.ToList());
         }
        public async Task SendMessage(string userName, string reciver, string text,bool isTranslate)
         {
@@ -289,10 +271,35 @@ namespace ChatOnWebApi.Hubs
                 user.ConnectionId = Context.ConnectionId;
             }
             await _context.SaveChangesAsync();
-            var friendList = await _context.Friends.FirstOrDefaultAsync(u => u.User == user);
-            var friendRequests = await _context.FriendRequests.Where(u => u.Sender == user || u.Reciever == user).ToListAsync();
-
-            await Clients.Caller.SendAsync("Users", _context.Users.ToList(), friendList.UsersFriendList.ToList(), friendRequests);
+            List<User> friends = new List<User>();
+            List<User>sendedRequests = new List<User>();
+            List<User>recievedRequests = new List<User>();
+            if (user != null)
+            {
+                foreach (var item in _context.Friends.Include(rt=>rt.FromUserId).Include(rt=>rt.ToUserId))
+                {
+                    if (user == item.ToUserId && item.isAccepted)
+                    {
+                        friends.Add(item.FromUserId);
+                    }
+                    else if(user==item.ToUserId && !item.isAccepted)
+                    {
+                        recievedRequests.Add(item.FromUserId);
+                    }
+                    if (user == item.FromUserId && item.isAccepted)
+                    {
+                        friends.Add(item.ToUserId);
+                    }
+                    else if (user == item.FromUserId && !item.isAccepted)
+                    {
+                        sendedRequests.Add(item.ToUserId);
+                    }
+                }
+                if (friends != null)
+                    await Clients.Caller.SendAsync("FriendList", friends.ToList());
+            }
+            if(friends != null)
+            await Clients.Caller.SendAsync("Users", _context.Users.ToList(),friends.ToList(),sendedRequests.ToList(),recievedRequests.ToList());
         }
         public async Task AddFriend(string sender, string reciever)
         {
@@ -301,12 +308,14 @@ namespace ChatOnWebApi.Hubs
             //Find Both user and create new friend request
             if (_sender != null && _reciever != null)
             {
-                FriendRequests friendRequest = new FriendRequests()
+                FriendList friendRequest = new FriendList()
                 {
-                    Sender = _sender,
-                    Reciever = _reciever,
+                    FromUserId = _sender,
+                    ToUserId = _reciever,
+                    reqDate = DateTime.Now,
+                    isAccepted = false
                 };
-                _context.FriendRequests.Add(friendRequest);
+                _context.Friends.Add(friendRequest);
                 await _context.SaveChangesAsync();
                 //Send sender to 
                 if (_reciever.ConnectionId != null)
@@ -318,26 +327,17 @@ namespace ChatOnWebApi.Hubs
             var _sender = await _context.Users.FirstOrDefaultAsync(u => u.UserName == sender.Trim());
             var _reciever = await _context.Users.FirstOrDefaultAsync(u => u.UserName == reciever.Trim());
             //Find Friend Request
-            var friendRequest = await _context.FriendRequests.FirstOrDefaultAsync(u => u.Sender == _sender && u.Reciever == _reciever);
-            if (friendRequest != null && _sender != null && _reciever != null)
+            if(_sender!= null && _reciever != null)
             {
-                //Delete Request because we dont need anymore
-                _context.FriendRequests.Remove(friendRequest);
-                //Find Both users friend list and add their friendlist eachother
-                var senderFriendList = await _context.Friends.Include(rt=>rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == _sender);
-                var recieverFriendList = await _context.Friends.Include(rt => rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == _reciever);
-                if (senderFriendList != null && recieverFriendList != null)
+                var friendRequest = await _context.Friends.FirstOrDefaultAsync(u => u.FromUserId == _sender && u.ToUserId == _reciever);
+                if (friendRequest != null)
                 {
-                    senderFriendList.UsersFriendList.Add(_reciever);
-                    recieverFriendList.UsersFriendList.Add(_sender);
+                    friendRequest.isAccepted = true;
                     await _context.SaveChangesAsync();
-                    //Send  client to AcceptFriend method
                     if (_sender.ConnectionId != null)
                         await Clients.Client(_sender.ConnectionId).SendAsync("AcceptFriend", _reciever.UserName);
                 }
-
-            }
-
+            }        
         }
         public async Task RemoveFriend(string sender, string reciever)
         {
@@ -346,16 +346,15 @@ namespace ChatOnWebApi.Hubs
             //Find Both users friend list and remove their friendlist eachother
             if (_sender != null && _reciever != null)
             {
-                var senderFriendList = await _context.Friends.Include(rt => rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == _sender);
-                var recieverFriendList = await _context.Friends.Include(rt => rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == _reciever);
-                if (senderFriendList != null && recieverFriendList != null)
+                var friendRequest = await _context.Friends.FirstOrDefaultAsync(u => u.FromUserId == _sender&& u.ToUserId == _reciever);
+                if (friendRequest != null)
                 {
-                    senderFriendList.UsersFriendList.Remove(_reciever);
-                    recieverFriendList.UsersFriendList.Remove(_sender);
+                    _context.Friends.Remove(friendRequest);
                     await _context.SaveChangesAsync();
-                    if (_reciever.ConnectionId != null)
-                        await Clients.Client(_reciever.ConnectionId).SendAsync("RemoveFriend", _sender.UserName);
                 }
+                if (_reciever.ConnectionId != null)
+                        await Clients.Client(_reciever.ConnectionId).SendAsync("RemoveFriend", _sender.UserName);
+                
             }
 
         }
@@ -365,24 +364,40 @@ namespace ChatOnWebApi.Hubs
             var _sender = await _context.Users.FirstOrDefaultAsync(u => u.UserName == sender.Trim());
             var _reciever = await _context.Users.FirstOrDefaultAsync(u => u.UserName == reciever.Trim());
             //Find Friend Request
-            var friendRequest = await _context.FriendRequests.FirstOrDefaultAsync(u => u.Sender == _sender && u.Reciever == _reciever);
-            if (friendRequest != null && _sender != null && _reciever != null)
+            if (_sender != null && _reciever != null)
             {
-                _context.FriendRequests.Remove(friendRequest);
-                await _context.SaveChangesAsync();
-                await Clients.Caller.SendAsync("RemoveRequest");
+                var friendRequest = await _context.Friends.FirstOrDefaultAsync(u => u.FromUserId == _sender && u.ToUserId == _reciever);
+                if (friendRequest != null)
+                {
+                    _context.Friends.Remove(friendRequest);
+                    await _context.SaveChangesAsync();
+                }
                 if (_reciever.ConnectionId != null)
                     await Clients.Client(_reciever.ConnectionId).SendAsync("RemoveRequest", _sender.UserName);
-            }
-
+            }                      
         }
         //User Profile
         public async Task GetUsersFriendList(string userName)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u =>u.UserName == userName.Trim());
-            var friendlist = await _context.Friends.Include(rt=>rt.UsersFriendList).FirstOrDefaultAsync(u => u.User == user);
-            if (friendlist != null)
-                await Clients.Caller.SendAsync("FriendList", friendlist.UsersFriendList.ToList());
+            List<User> friends = new List<User>();
+            if(user != null)
+            {
+                foreach (var item in _context.Friends.Include(rt => rt.FromUserId).Include(rt => rt.ToUserId))
+                {
+                    if (user == item.ToUserId && item.isAccepted)
+                    {
+                    friends.Add(item.FromUserId);    
+                    }
+                    if (user == item.FromUserId && item.isAccepted)
+                    {
+                    friends.Add(item.ToUserId);
+                    }
+                }
+                if (friends != null)
+                    await Clients.Caller.SendAsync("FriendList", friends.ToList());
+            }
+     
         }
 
     }

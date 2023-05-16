@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ChatOnWebApi.Migrations
 {
     [DbContext(typeof(UserDbContext))]
-    [Migration("20230508141002_Initial")]
-    partial class Initial
+    [Migration("20230516135750_addfriend")]
+    partial class addfriend
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,37 +33,28 @@ namespace ChatOnWebApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("UserId")
+                    b.Property<int>("FromUserIdId")
                         .HasColumnType("int");
+
+                    b.Property<int>("ToUserIdId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("isAccepted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("reqDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("startDate")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("FromUserIdId");
+
+                    b.HasIndex("ToUserIdId");
 
                     b.ToTable("Friends");
-                });
-
-            modelBuilder.Entity("ChatOnWebApi.Models.FriendRequests", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("RecieverId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SenderId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RecieverId");
-
-                    b.HasIndex("SenderId");
-
-                    b.ToTable("FriendRequests");
                 });
 
             modelBuilder.Entity("ChatOnWebApi.Models.Message", b =>
@@ -78,9 +69,8 @@ namespace ChatOnWebApi.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("CreatedTime")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("CreatedTime")
+                        .HasColumnType("datetime2");
 
                     b.Property<byte>("IsRecived")
                         .HasColumnType("tinyint");
@@ -115,8 +105,9 @@ namespace ChatOnWebApi.Migrations
                     b.Property<int?>("NotificationListId")
                         .HasColumnType("int");
 
-                    b.Property<int>("SenderId")
-                        .HasColumnType("int");
+                    b.Property<string>("Sender")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("type")
                         .IsRequired()
@@ -125,8 +116,6 @@ namespace ChatOnWebApi.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("NotificationListId");
-
-                    b.HasIndex("SenderId");
 
                     b.ToTable("Notifications");
                 });
@@ -198,9 +187,6 @@ namespace ChatOnWebApi.Migrations
                     b.Property<string>("FirstName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("FriendListId")
-                        .HasColumnType("int");
-
                     b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)");
 
@@ -243,39 +229,26 @@ namespace ChatOnWebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FriendListId");
-
                     b.ToTable("Users");
                 });
 
             modelBuilder.Entity("ChatOnWebApi.Models.FriendList", b =>
                 {
-                    b.HasOne("ChatOnWebApi.Models.User", "User")
+                    b.HasOne("ChatOnWebApi.Models.User", "FromUserId")
                         .WithMany()
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("FromUserIdId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("ChatOnWebApi.Models.FriendRequests", b =>
-                {
-                    b.HasOne("ChatOnWebApi.Models.User", "Reciever")
+                    b.HasOne("ChatOnWebApi.Models.User", "ToUserId")
                         .WithMany()
-                        .HasForeignKey("RecieverId")
+                        .HasForeignKey("ToUserIdId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ChatOnWebApi.Models.User", "Sender")
-                        .WithMany()
-                        .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("FromUserId");
 
-                    b.Navigation("Reciever");
-
-                    b.Navigation("Sender");
+                    b.Navigation("ToUserId");
                 });
 
             modelBuilder.Entity("ChatOnWebApi.Models.Message", b =>
@@ -302,14 +275,6 @@ namespace ChatOnWebApi.Migrations
                     b.HasOne("ChatOnWebApi.Models.NotificationList", null)
                         .WithMany("UsersNotificationList")
                         .HasForeignKey("NotificationListId");
-
-                    b.HasOne("ChatOnWebApi.Models.User", "Sender")
-                        .WithMany()
-                        .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Sender");
                 });
 
             modelBuilder.Entity("ChatOnWebApi.Models.NotificationList", b =>
@@ -332,18 +297,6 @@ namespace ChatOnWebApi.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("ChatOnWebApi.Models.User", b =>
-                {
-                    b.HasOne("ChatOnWebApi.Models.FriendList", null)
-                        .WithMany("UsersFriendList")
-                        .HasForeignKey("FriendListId");
-                });
-
-            modelBuilder.Entity("ChatOnWebApi.Models.FriendList", b =>
-                {
-                    b.Navigation("UsersFriendList");
                 });
 
             modelBuilder.Entity("ChatOnWebApi.Models.NotificationList", b =>

@@ -17,8 +17,8 @@ namespace ChatOnWebApi.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    SenderId = table.Column<int>(type: "int", nullable: false),
-                    RecieverId = table.Column<int>(type: "int", nullable: false)
+                    Sender = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Reciever = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -31,7 +31,11 @@ namespace ChatOnWebApi.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<int>(type: "int", nullable: false)
+                    FromUserId = table.Column<int>(type: "int", nullable: false),
+                    ToUserId = table.Column<int>(type: "int", nullable: false),
+                    reqDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    startDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    isAccepted = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -59,17 +63,11 @@ namespace ChatOnWebApi.Migrations
                     RefreshToken = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     TokenCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
                     TokenExpires = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LanguageCode = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FriendListId = table.Column<int>(type: "int", nullable: true)
+                    LanguageCode = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Users_Friends_FriendListId",
-                        column: x => x.FriendListId,
-                        principalTable: "Friends",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -81,7 +79,7 @@ namespace ChatOnWebApi.Migrations
                     SenderId = table.Column<int>(type: "int", nullable: false),
                     ReciverId = table.Column<int>(type: "int", nullable: false),
                     Body = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedTime = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedTime = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Translate = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsRecived = table.Column<byte>(type: "tinyint", nullable: false)
                 },
@@ -149,7 +147,7 @@ namespace ChatOnWebApi.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    SenderId = table.Column<int>(type: "int", nullable: false),
+                    Sender = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     type = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     NotificationListId = table.Column<int>(type: "int", nullable: true)
                 },
@@ -161,28 +159,7 @@ namespace ChatOnWebApi.Migrations
                         column: x => x.NotificationListId,
                         principalTable: "NotificationList",
                         principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Notifications_Users_SenderId",
-                        column: x => x.SenderId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
                 });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FriendRequests_RecieverId",
-                table: "FriendRequests",
-                column: "RecieverId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FriendRequests_SenderId",
-                table: "FriendRequests",
-                column: "SenderId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Friends_UserId",
-                table: "Friends",
-                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Messages_ReciverId",
@@ -205,54 +182,19 @@ namespace ChatOnWebApi.Migrations
                 column: "NotificationListId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Notifications_SenderId",
-                table: "Notifications",
-                column: "SenderId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_UserId",
                 table: "RefreshTokens",
                 column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_FriendListId",
-                table: "Users",
-                column: "FriendListId");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_FriendRequests_Users_RecieverId",
-                table: "FriendRequests",
-                column: "RecieverId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.NoAction);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_FriendRequests_Users_SenderId",
-                table: "FriendRequests",
-                column: "SenderId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.NoAction);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Friends_Users_UserId",
-                table: "Friends",
-                column: "UserId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.NoAction);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Friends_Users_UserId",
-                table: "Friends");
-
             migrationBuilder.DropTable(
                 name: "FriendRequests");
+
+            migrationBuilder.DropTable(
+                name: "Friends");
 
             migrationBuilder.DropTable(
                 name: "Messages");
@@ -268,9 +210,6 @@ namespace ChatOnWebApi.Migrations
 
             migrationBuilder.DropTable(
                 name: "Users");
-
-            migrationBuilder.DropTable(
-                name: "Friends");
         }
     }
 }
